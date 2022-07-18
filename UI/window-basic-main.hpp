@@ -199,7 +199,7 @@ class OBSBasic : public OBSMainWindow {
 		ContextBarSize_Normal
 	};
 
-private:
+protected:
 	obs_frontend_callbacks *api = nullptr;
 
 	std::shared_ptr<Auth> auth;
@@ -670,7 +670,7 @@ public slots:
 	void PauseRecording();
 	void UnpauseRecording();
 
-private slots:
+protected slots:
 
 	void on_actionMainUndo_triggered();
 	void on_actionMainRedo_triggered();
@@ -813,6 +813,7 @@ public:
 	OBSScene GetCurrentScene();
 
 	void SysTrayNotify(const QString &text, QSystemTrayIcon::MessageIcon n);
+	void SysTrayNotify(const QString &title, const QString &text, QSystemTrayIcon::MessageIcon n);
 
 	inline OBSSource GetCurrentSceneSource()
 	{
