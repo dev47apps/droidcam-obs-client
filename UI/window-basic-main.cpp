@@ -313,10 +313,14 @@ OBSBasic::OBSBasic(QWidget *parent)
 	installEventFilter(shortcutFilter);
 
 	stringstream name;
+#if DROIDCAM_OVERRIDE
+	name << "DroidCam Client (OBS) " << App()->GetVersionString();
+	blog(LOG_INFO, "%s", name.str().c_str());
+#else
 	name << "OBS " << App()->GetVersionString();
 	blog(LOG_INFO, "%s", name.str().c_str());
 	blog(LOG_INFO, "---------------------------------");
-
+#endif
 	UpdateTitleBar();
 
 	connect(ui->scenes->itemDelegate(),
@@ -332,9 +336,11 @@ OBSBasic::OBSBasic(QWidget *parent)
 		SLOT(UpdateCPUUsage()));
 	cpuUsageTimer->start(3000);
 
+#if DROIDCAM_OVERRIDE==0
 	diskFullTimer = new QTimer(this);
 	connect(diskFullTimer, SIGNAL(timeout()), this,
 		SLOT(CheckDiskSpaceRemaining()));
+#endif
 
 	renameScene = new QAction(ui->scenesDock);
 	renameScene->setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -790,7 +796,7 @@ void OBSBasic::CreateDefaultScene(bool firstStart)
 	ClearSceneData();
 	InitDefaultTransitions();
 	CreateDefaultQuickTransitions();
-	ui->transitionDuration->setValue(300);
+	ui->transitionDuration->setValue(100);
 	SetTransition(fadeTransition);
 
 	OBSSceneAutoRelease scene = obs_scene_create(Str("Basic.Scene"));
@@ -8612,6 +8618,9 @@ void OBSBasic::on_actionFullscreenInterface_triggered()
 
 void OBSBasic::UpdateTitleBar()
 {
+#if DROIDCAM_OVERRIDE
+	setWindowTitle("DroidCam Client");
+#else
 	stringstream name;
 
 	const char *profile =
@@ -8631,6 +8640,7 @@ void OBSBasic::UpdateTitleBar()
 	name << " - " << Str("TitleBar.Scenes") << ": " << sceneCollection;
 
 	setWindowTitle(QT_UTF8(name.str().c_str()));
+#endif
 }
 
 int OBSBasic::GetProfilePath(char *path, size_t size, const char *file) const
