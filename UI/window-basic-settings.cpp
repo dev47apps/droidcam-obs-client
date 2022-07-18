@@ -552,7 +552,7 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->reconnectMaxRetries,  SCROLL_CHANGED, ADV_CHANGED);
 	HookWidget(ui->processPriority,      COMBO_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->confirmOnExit,        CHECK_CHANGED,  ADV_CHANGED);
-	HookWidget(ui->bindToIP,             COMBO_CHANGED,  ADV_CHANGED);
+	HookWidget(ui->bindToIP,             COMBO_CHANGED,  ADV_RESTART);
 	HookWidget(ui->enableNewSocketLoop,  CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->enableLowLatencyMode, CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->hotkeyFocusType,      COMBO_CHANGED,  ADV_CHANGED);
@@ -912,10 +912,83 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	channelIndex = ui->channelSetup->currentIndex();
 	sampleRateIndex = ui->sampleRate->currentIndex();
 
+#ifdef DROIDCAM_OVERRIDE
+	ui->listWidget->setRowHidden(1, true); // Stream
+	ui->listWidget->setRowHidden(2, true); // Output
+	ui->listWidget->setRowHidden(5, true); // Hotkeys
+
+	#define HIDE_ITEM(item) \
+		if (item) item->setVisible(false)
+
+	// General
+	HIDE_ITEM(ui->enableAutoUpdates);
+	HIDE_ITEM(ui->openStatsOnStartup);
+	HIDE_ITEM(ui->systemTrayEnabled);
+	HIDE_ITEM(ui->groupBoxMultiview);
+	ui->hideOBSFromCapture->setToolTip(QString());
+	ui->groupBox_10->setVisible(false); // "Source Alignment"
+	ui->groupBox_11->setVisible(false); // "Studio Mode"
+	ui->groupBox_14->setVisible(false); // "Projectors"
+	ui->groupBox_16->setVisible(false); // "Output"
+	ui->groupBox_18->setVisible(false); // "Preview"
+	ui->groupBox_19->setVisible(false); // "Importers"
+	ui->verticalLayout_20->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+
+	QHBoxLayout *stack0 = new QHBoxLayout();
+	stack0->addWidget(ui->simpleOutputPath);
+	stack0->addWidget(ui->simpleOutputBrowse);
+	ui->formLayout_32->insertRow(3, new QLabel(QTStr("Basic.Settings.Output.Simple.SavePath"), this), stack0);
+
+	// Audio
+	HIDE_ITEM(ui->audioDevicesGroupBox);
+	HIDE_ITEM(ui->audioHotkeysGroupBox);
+	HIDE_ITEM(ui->label_15); // Channels
+	HIDE_ITEM(ui->channelSetup);
+
+	// Video
+	HookWidget(ui->baseResolution, COMBO_CHANGED, VIDEO_CHANGED);
+	ui->baseResolution->setEditable(false);
+	HIDE_ITEM(ui->outputResLabel);
+	HIDE_ITEM(ui->outputResolution);
+	HIDE_ITEM(ui->scaledAspect);
+	HIDE_ITEM(ui->baseAspect);
+	HIDE_ITEM(ui->label_11); // DownscaleFilter Label
+	HIDE_ITEM(ui->downscaleFilter);
+
+	QHBoxLayout *stack1 = new QHBoxLayout();
+	stack1->addWidget(ui->fpsCommon);
+
+	ui->fpsType->setVisible(false);
+	ui->fpsTypes->setVisible(false);
+	ui->formLayout_3->insertRow(3, new QLabel(QTStr("Basic.Settings.Video.FPS"), this), stack1);
+
+	// Advanced
+	HIDE_ITEM(ui->label_30); // video color formats
+	HIDE_ITEM(ui->label_33);
+	HIDE_ITEM(ui->label_34);
+	HIDE_ITEM(ui->colorSpace);
+	HIDE_ITEM(ui->colorRange);
+	HIDE_ITEM(ui->colorFormat);
+
+	HIDE_ITEM(ui->groupBox_6); // Adv Recording
+	HIDE_ITEM(ui->groupBox_5); // Adv Stream
+	HIDE_ITEM(ui->groupBox_7); // Auto reconnect
+	HIDE_ITEM(ui->sourcesGroup); // Adv Sources
+	HIDE_ITEM(ui->groupBox_17); // Adv Sources
+	HIDE_ITEM(ui->advancedMsg2);
+	HIDE_ITEM(ui->dynBitrate);
+	HIDE_ITEM(ui->confirmOnExit);
+	HIDE_ITEM(ui->enableNewSocketLoop);
+	HIDE_ITEM(ui->enableLowLatencyMode);
+	ui->verticalLayout_24->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+	#undef HIDE_ITEM
+#else
+
 	QRegularExpression rx("\\d{1,5}x\\d{1,5}");
 	QValidator *validator = new QRegularExpressionValidator(rx, this);
 	ui->baseResolution->lineEdit()->setValidator(validator);
 	ui->outputResolution->lineEdit()->setValidator(validator);
+#endif
 
 	connect(ui->useStreamKeyAdv, SIGNAL(clicked()), this,
 		SLOT(UseStreamKeyAdvClicked()));
@@ -1590,6 +1663,29 @@ void OBSBasicSettings::LoadResolutionLists()
 
 	ui->baseResolution->clear();
 
+#if DROIDCAM_OVERRIDE
+
+	auto addRes = [this, cx, cy](uint32_t x, uint32_t y) {
+		QString res = ResString(x, y).c_str();
+		if (ui->baseResolution->findText(res) >= 0)
+			return;
+
+		ui->baseResolution->addItem(res);
+		if (cx == x && cy == y)
+			ui->baseResolution->setCurrentIndex(
+				ui->baseResolution->count() - 1);
+	};
+
+	addRes(640, 480);
+	addRes(1280, 720);
+	addRes(1920, 1080);
+	// addRes(1920, 1440);
+	// addRes(2560, 1440);
+	// addRes(3840, 2160);
+
+	ui->outputResolution->setCurrentText(ResString(out_cx, out_cy).c_str());
+
+#else
 	auto addRes = [this](int cx, int cy) {
 		QString res = ResString(cx, cy).c_str();
 		if (ui->baseResolution->findText(res) == -1)
@@ -1621,6 +1717,7 @@ void OBSBasicSettings::LoadResolutionLists()
 
 	ui->outputResolution->lineEdit()->setText(outputResString.c_str());
 
+#endif
 	std::tuple<int, int> aspect = aspect_ratio(cx, cy);
 
 	ui->baseAspect->setText(
@@ -1631,12 +1728,18 @@ void OBSBasicSettings::LoadResolutionLists()
 
 static inline void LoadFPSCommon(OBSBasic *main, Ui::OBSBasicSettings *ui)
 {
+	ui->fpsCommon->clear();
+	ui->fpsCommon->addItem("25");
+	ui->fpsCommon->addItem("30");
+	ui->fpsCommon->addItem("50");
+	ui->fpsCommon->addItem("60");
+
 	const char *val =
 		config_get_string(main->Config(), "Video", "FPSCommon");
 
 	int idx = ui->fpsCommon->findText(val);
 	if (idx == -1)
-		idx = 4;
+		idx = 1;
 	ui->fpsCommon->setCurrentIndex(idx);
 }
 
@@ -3199,10 +3302,12 @@ void OBSBasicSettings::SaveVideoSettings()
 	    ConvertResText(QT_TO_UTF8(baseResolution), cx, cy)) {
 		config_set_uint(main->Config(), "Video", "BaseCX", cx);
 		config_set_uint(main->Config(), "Video", "BaseCY", cy);
+	#if DROIDCAM_OVERRIDE==0
 	}
 
 	if (WidgetChanged(ui->outputResolution) &&
 	    ConvertResText(QT_TO_UTF8(outputResolution), cx, cy)) {
+	#endif
 		config_set_uint(main->Config(), "Video", "OutputCX", cx);
 		config_set_uint(main->Config(), "Video", "OutputCY", cy);
 	}
@@ -3750,7 +3855,9 @@ void OBSBasicSettings::SaveSettings()
 		(ui->browserHWAccel &&
 		 ui->browserHWAccel->isChecked() != prevBrowserAccel);
 
-	if (langChanged || audioRestart || browserHWAccelChanged)
+	bool bindIPChanged = WidgetChanged(ui->bindToIP);
+
+	if (bindIPChanged || langChanged || audioRestart || browserHWAccelChanged)
 		restart = true;
 	else
 		restart = false;
