@@ -1416,7 +1416,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_string(basicConfig, "Output", "Mode", "Simple");
 
 	config_set_default_bool(basicConfig, "Stream1", "IgnoreRecommended",
-				false);
+				true);
 
 	config_set_default_string(basicConfig, "SimpleOutput", "FilePath",
 				  GetDefaultVideoSavePath().c_str());
@@ -1552,6 +1552,13 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_double(basicConfig, "Audio", "MeterDecayRate",
 				  VOLUME_METER_DECAY_FAST);
 	config_set_default_uint(basicConfig, "Audio", "PeakMeterType", 0);
+
+#if DROIDCAM_OVERRIDE
+	config_set_default_string(basicConfig, "Video", "ColorFormat", "I420");
+	config_set_default_string(basicConfig, "Video", "ScaleType", "bilinear");
+	config_set_default_string(basicConfig, "Video", "ColorRange", "Full");
+	config_set_default_uint(basicConfig, "Audio", "SampleRate", 44100);
+#endif
 
 	CheckExistingCookieId();
 
@@ -7634,10 +7641,10 @@ void OBSBasic::GetFPSCommon(uint32_t &num, uint32_t &den) const
 	} else if (strcmp(val, "20") == 0) {
 		num = 20;
 		den = 1;
-	} else if (strcmp(val, "24 NTSC") == 0) {
-		num = 24000;
-		den = 1001;
-	} else if (strcmp(val, "25 PAL") == 0) {
+	} else if (strcmp(val, "24") == 0) {
+		num = 24;
+		den = 1;
+	} else if (strcmp(val, "25") == 0) {
 		num = 25;
 		den = 1;
 	} else if (strcmp(val, "29.97") == 0) {
@@ -7646,7 +7653,7 @@ void OBSBasic::GetFPSCommon(uint32_t &num, uint32_t &den) const
 	} else if (strcmp(val, "48") == 0) {
 		num = 48;
 		den = 1;
-	} else if (strcmp(val, "50 PAL") == 0) {
+	} else if (strcmp(val, "50") == 0) {
 		num = 50;
 		den = 1;
 	} else if (strcmp(val, "59.94") == 0) {
