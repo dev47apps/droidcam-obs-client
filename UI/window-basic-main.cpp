@@ -1911,7 +1911,7 @@ void OBSBasic::OBSInit()
 #if DROIDCAM_OVERRIDE
 	CleanMenuItems(ui->menu_File);
 	CleanMenuItems(ui->viewMenu);
-	CleanMenuItems(ui->menuBasic_MainMenu_Help);
+	CleanMenuItems(ui->menuBasic_MainMenu_Help, true);
 	ui->menuBasic_MainMenu_Edit->menuAction()->setVisible(false);
 	ui->menuDocks->menuAction()->setVisible(false);
 	ui->menuTools->menuAction()->setVisible(false);
@@ -3761,8 +3761,20 @@ void OBSBasic::TimedCheckForUpdates()
 	if (App()->IsUpdaterDisabled())
 		return;
 	if (!config_get_bool(App()->GlobalConfig(), "General",
-			     "EnableAutoUpdates"))
+		"EnableAutoUpdates"))
 		return;
+
+#if DROIDCAM_OVERRIDE
+	long long lastUpdate = config_get_int(App()->GlobalConfig(), "General",
+		"LastUpdateCheck");
+
+	long long t = (long long)time(nullptr);
+	long long secs = t - lastUpdate;
+	blog(LOG_INFO, "Update Check lapse: %d secs", (int)(secs));
+
+	if (secs > UPDATE_CHECK_INTERVAL)
+		CheckForUpdates(false);
+#else
 
 #ifdef UPDATE_SPARKLE
 	init_sparkle_updater(config_get_bool(App()->GlobalConfig(), "General",
@@ -3784,6 +3796,7 @@ void OBSBasic::TimedCheckForUpdates()
 
 	if (secs > UPDATE_CHECK_INTERVAL)
 		CheckForUpdates(false);
+#endif
 #endif
 }
 

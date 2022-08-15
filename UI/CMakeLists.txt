@@ -446,6 +446,17 @@ if(DROIDCAM_OVERRIDE)
 	list(APPEND obs_UI
 		forms/DroidCamAbout.ui
 		)
+
+	if(WIN32)
+	list(REMOVE_ITEM obs_SOURCES
+		win-update/win-update.cpp
+		win-update/win-update-helpers.cpp
+		)
+	list(APPEND obs_SOURCES
+		win-update/sigcheck.cpp
+		win-update/droidcam-update.cpp
+		)
+	endif()
 endif()
 
 qt5_wrap_ui(obs_UI_HEADERS ${obs_UI})
