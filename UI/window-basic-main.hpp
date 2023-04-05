@@ -298,6 +298,7 @@ protected:
 	QPointer<QAction> sysTrayRecord;
 	QPointer<QAction> sysTrayReplayBuffer;
 	QPointer<QAction> sysTrayVirtualCam;
+	QPointer<QAction> sysTrayActive;
 	QPointer<QAction> showHide;
 	QPointer<QAction> exit;
 	QPointer<QMenu> trayMenu;
@@ -495,8 +496,8 @@ protected:
 
 	int disableOutputsRef = 0;
 
-	inline void OnActivate(bool force = false);
-	inline void OnDeactivate();
+	void OnActivate(bool force = false);
+	void OnDeactivate();
 
 	void AddDropSource(const char *file, DropType image);
 	void AddDropURL(const char *url, QString &name, obs_data_t *settings,
@@ -1006,6 +1007,7 @@ private slots:
 	void on_actionScaleCanvas_triggered();
 	void on_actionScaleOutput_triggered();
 
+	virtual void ActivateDeactivateClicked() {};
 	void on_streamButton_clicked();
 	void on_recordButton_clicked();
 	void VCamButtonClicked();

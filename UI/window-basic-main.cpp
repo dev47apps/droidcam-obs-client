@@ -6877,7 +6877,7 @@ static inline void ClearProcessPriority()
 	} while (false)
 #endif
 
-inline void OBSBasic::OnActivate(bool force)
+void OBSBasic::OnActivate(bool force)
 {
 	if (ui->profileMenu->isEnabled() || force) {
 		ui->profileMenu->setEnabled(false);
@@ -6904,8 +6904,15 @@ inline void OBSBasic::OnActivate(bool force)
 extern volatile bool recording_paused;
 extern volatile bool replaybuf_active;
 
-inline void OBSBasic::OnDeactivate()
+void OBSBasic::OnDeactivate()
 {
+#if DROIDCAM_OVERRIDE
+	if (!ui->profileMenu->isEnabled()) {
+		ui->profileMenu->setEnabled(true);
+		App()->DecrementSleepInhibition();
+		ClearProcessPriority();
+	}
+#else
 	if (!outputHandler->Active() && !ui->profileMenu->isEnabled()) {
 		ui->profileMenu->setEnabled(true);
 		ui->autoConfigure->setEnabled(true);
@@ -6949,6 +6956,7 @@ inline void OBSBasic::OnDeactivate()
 							   trayIconFile));
 		}
 	}
+#endif
 }
 
 void OBSBasic::StopStreaming()
@@ -7053,8 +7061,6 @@ void OBSBasic::StreamDelayStarting(int sec)
 	ui->streamButton->setMenu(startStreamMenu);
 
 	ui->statusbar->StreamDelayStarting(sec);
-
-	OnActivate();
 }
 
 void OBSBasic::StreamDelayStopping(int sec)
@@ -7630,8 +7636,6 @@ void OBSBasic::StopVirtualCam()
 
 	if (outputHandler->VirtualCamActive())
 		outputHandler->StopVirtualCam();
-
-	OnDeactivate();
 }
 
 void OBSBasic::OnVirtualCamStart()
@@ -7646,8 +7650,6 @@ void OBSBasic::OnVirtualCamStart()
 
 	if (api)
 		api->on_event(OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED);
-
-	OnActivate();
 
 	blog(LOG_INFO, VIRTUAL_CAM_START);
 }
@@ -7666,12 +7668,11 @@ void OBSBasic::OnVirtualCamStop(int)
 		api->on_event(OBS_FRONTEND_EVENT_VIRTUALCAM_STOPPED);
 
 	blog(LOG_INFO, VIRTUAL_CAM_STOP);
-
-	OnDeactivate();
 }
 
 void OBSBasic::on_streamButton_clicked()
 {
+#if DROIDCAM_OVERRIDE==0
 	if (outputHandler->StreamingActive()) {
 		bool confirm = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					       "WarnBeforeStoppingStream");
@@ -7774,6 +7775,7 @@ void OBSBasic::on_streamButton_clicked()
 
 		StartStreaming();
 	}
+#endif
 }
 
 void OBSBasic::on_recordButton_clicked()
@@ -9262,17 +9264,26 @@ void OBSBasic::SystemTrayInit()
 	previewProjector = new QMenu(QTStr("PreviewProjector"));
 	studioProgramProjector = new QMenu(QTStr("StudioProgramProjector"));
 #if DROIDCAM_OVERRIDE
+	sysTrayActive = new QAction(QTStr("Basic.Stats.Status.Active"), trayIcon.data());
+
 	trayIcon->setToolTip("DroidCam");
 	trayMenu->addAction(showHide);
+	trayMenu->addSeparator();
+	trayMenu->addAction(sysTrayActive);
 	trayMenu->addSeparator();
 	trayMenu->addAction(exit);
 	trayIcon->setContextMenu(trayMenu);
 	trayIcon->show();
 
+	sysTrayActive->setEnabled(false);
+	sysTrayActive->setCheckable(true);
+
 	connect(trayIcon.data(),
 		SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
 		SLOT(IconActivated(QSystemTrayIcon::ActivationReason)));
 	connect(showHide, SIGNAL(triggered()), this, SLOT(ToggleShowHide()));
+	connect(sysTrayActive.data(), &QAction::triggered, this,
+		&OBSBasic::ActivateDeactivateClicked);
 	connect(exit, SIGNAL(triggered()), this, SLOT(close()));
 #else
 	AddProjectorMenuMonitors(previewProjector, this,
