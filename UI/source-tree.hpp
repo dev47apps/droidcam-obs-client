@@ -67,6 +67,8 @@ private:
 	LockedCheckBox *lock = nullptr;
 	QHBoxLayout *boxLayout = nullptr;
 	QLabel *label = nullptr;
+	QLabel *batteryIcon = nullptr;
+	QLabel *batteryText = nullptr;
 
 	QLineEdit *editor = nullptr;
 
@@ -74,15 +76,7 @@ private:
 
 	SourceTree *tree;
 	OBSSceneItem sceneitem;
-	OBSSignal sceneRemoveSignal;
-	OBSSignal itemRemoveSignal;
-	OBSSignal groupReorderSignal;
-	OBSSignal selectSignal;
-	OBSSignal deselectSignal;
-	OBSSignal visibleSignal;
-	OBSSignal lockedSignal;
-	OBSSignal renameSignal;
-	OBSSignal removeSignal;
+	std::vector<OBSSignal> sigs;
 
 	virtual void paintEvent(QPaintEvent *event) override;
 
@@ -97,6 +91,7 @@ private slots:
 	void VisibilityChanged(bool visible);
 	void LockedChanged(bool locked);
 	void Renamed(const QString &name);
+	void BatteryChanged(const QString &value, int alert);
 
 	void ExpandClicked(bool checked);
 
