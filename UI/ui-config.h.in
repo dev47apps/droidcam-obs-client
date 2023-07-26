@@ -32,3 +32,5 @@
 
 #define DEFAULT_THEME "Flat Dark"
 #define DROIDCAM_OVERRIDE @DROIDCAM_OVERRIDE@
+#define STATS_TOKEN       "@STATS_TOKEN@"
+#define STATS_API_URL     "@STATS_API_URL@"

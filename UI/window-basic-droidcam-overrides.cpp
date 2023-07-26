@@ -4,8 +4,13 @@
 #endif
 #include "window-basic-settings.hpp"
 #include "window-basic-droidcam-overrides.hpp"
+#include "util/windows/win-version.h"
+
 #include <QMenu>
 #include <QDesktopServices>
+#include <QScreen>
+#include <QSysInfo>
+#include <QUuid>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -25,12 +30,35 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 
 	return false;
 }
+
+static const char* GetCpuArch() {
+	SYSTEM_INFO si;
+	GetNativeSystemInfo(&si);
+	switch (si.wProcessorArchitecture) {
+	case PROCESSOR_ARCHITECTURE_AMD64: return "x64";
+	case PROCESSOR_ARCHITECTURE_ARM64: return "arm64";
+	default: return "";
+	}
+}
+
+static char winver[32] = {0};
+static const char* GetWinVer() {
+	struct win_version_info win_version = {0};
+	get_win_ver(&win_version);
+	if (win_version.major != 0) {
+		snprintf(winver, sizeof(winver), "%d.%d.%d",
+			win_version.major, win_version.minor, win_version.build);
+	}
+
+	return winver;
+}
 #endif
 
+#include <json11.hpp>
+#include "remote-text.hpp"
 const char *DROIDCAM_OBS_ID = "droidcam_obs";
 
 // TODO reduce logging post-beta
-// TODO add "Toggle Controls" hotkey
 void OBSBasicDroidCam::on_urlChanged(const QString &url) {
 	blog(LOG_INFO, "url changed %s", url.toUtf8().constData());
 	last_remote_url = url.toStdString();
@@ -143,7 +171,21 @@ bool OBSBasicDroidCam::DroidCam_Update_Remote(OBSSource source) {
 	return false;
 }
 
+void OBSBasicDroidCam::statsFinished(const QString &text, const QString &error) {
+	#ifdef NPDB
+	blog(LOG_INFO, "%s", __func__);
+	#endif
+	if (error.isEmpty()) {
+		const long long now = (long long)time(nullptr);
+		config_set_int(GetGlobalConfig(), "General", "LastMx", now);
+	}
+}
+
 OBSBasicDroidCam::~OBSBasicDroidCam() {
+	if (statsThread && statsThread->isRunning()) {
+		blog(LOG_WARNING, "Waiting for pending tasks..");
+		statsThread->wait();
+	}
 }
 
 void OBSBasicDroidCam::OBSInit() {
@@ -254,6 +296,84 @@ void OBSBasicDroidCam::OBSInit() {
 		}
 	}
 	#endif // BROWSER_AVAILABLE
+
+	long long now = (long long)time(nullptr);
+	long long secs = now - config_get_int(GetGlobalConfig(), "General", "LastMx");
+
+	const char *uuid = config_get_string(GetGlobalConfig(), "General", "statsUUID");
+	if (!uuid) {
+		QByteArray machineUniqueId = QSysInfo::machineUniqueId();
+		if (machineUniqueId.isEmpty()) {
+			QUuid quuid = QUuid::createUuid();
+			uuid = quuid.toString(QUuid::WithoutBraces).toUtf8().constData();
+		} else {
+			uuid = machineUniqueId.constData();
+		}
+
+		config_set_string(GetGlobalConfig(), "General", "statsUUID", uuid);
+		uuid = config_get_string(GetGlobalConfig(), "General", "statsUUID");
+	}
+
+	if (strlen(STATS_TOKEN) && strlen(STATS_API_URL) > 8
+		&& secs >= (3600 * 24)
+		&& uuid && strlen(uuid) > 8)
+	{
+		using namespace json11;
+
+		const char *Language = config_get_string(GetGlobalConfig(), "General", "Language");
+		const char *themeName = config_get_string(GetGlobalConfig(), "General", "CurrentTheme2");
+		if (!themeName) themeName = config_get_string(GetGlobalConfig(), "General", "CurrentTheme");
+		if (!themeName) themeName = config_get_string(GetGlobalConfig(), "General", "Theme");
+		if (!themeName) themeName = DEFAULT_THEME;
+
+		const char *VideoFPS = config_get_string(basicConfig, "Video", "FPSCommon");
+		std::string VideoSize =
+			std::to_string((uint32_t)config_get_uint(basicConfig, "Video", "BaseCX")) +
+			"x" +
+			std::to_string((uint32_t)config_get_uint(basicConfig, "Video", "BaseCY"));
+
+
+		QScreen *primaryScreen = QGuiApplication::primaryScreen();
+		int screen_width  = primaryScreen ? primaryScreen->size().width() : 0;
+		int screen_height = primaryScreen ? primaryScreen->size().height() : 0;
+
+		const Json ClientOpen = Json::object{
+			{"event", "ClientOpen"},
+			{"api_key", STATS_TOKEN},
+			{"distinct_id", uuid},
+			{"properties", Json::object{
+				{"Version", OBS_VERSION},
+				{"Language", Language},
+				{"VideoSize", VideoSize},
+				{"VideoFPS", VideoFPS},
+				{"Theme", themeName},
+				{"$process_person_profile", false}, // anonymous
+				{"$device_type", "Desktop"},
+				{"$screen_width",  screen_width},
+				{"$screen_height", screen_height},
+				#ifdef _WIN32
+					{"$os", "Windows"},
+					{"$os_version", GetWinVer()},
+					{"$cpu_arch", GetCpuArch()},
+				#elif __APPLE__
+					#error "macOS"
+				#elif __linux__
+					#error "Linux"
+				#endif
+			}},
+		};
+
+		std::string data = ClientOpen.dump();
+		#ifdef NPDB
+		blog(LOG_INFO, "'%s'", data.c_str());
+		#endif
+		RemoteTextThread *thread =
+			new RemoteTextThread(STATS_API_URL, "application/json", data, 10);
+		statsThread.reset(thread);
+
+		connect(thread, &RemoteTextThread::Result, this, &OBSBasicDroidCam::statsFinished);
+		statsThread->start();
+	}
 }
 
 void OBSBasicDroidCam::EnumActiveSources(void) {
@@ -297,7 +417,7 @@ void OBSBasicDroidCam::EnumActiveSources(void) {
 		return true;
 	}, &io);
 
-	blog(LOG_INFO, "EnumActiveSources: count=%d visible=%d connected=%d",
+	blog(LOG_INFO, "DroidCam sources: count=%d visible=%d connected=%d",
 		io.count, io.visible, io.connected);
 
 	if (io.count == 0) {
