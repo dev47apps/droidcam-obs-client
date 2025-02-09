@@ -1967,7 +1967,7 @@ void OBSBasic::OBSInit()
 
 	QAction *reset_action = new QAction(QTStr("ResetClient"), this);
 	connect(reset_action, &QAction::triggered, this, [this]() {
-		QMessageBox::StandardButton button = QMessageBox::question(
+		QMessageBox::StandardButton button = OBSMessageBox::question(
 			this, "DroidCam", QTStr("NeedsRestart"));
 
 		if (button == QMessageBox::No)
@@ -8804,7 +8804,7 @@ void OBSBasic::on_resetUI_triggered()
 
 	if (extraDocks.size()) {
 #if DROIDCAM_OVERRIDE
-		QMessageBox::StandardButton button = QMessageBox::question(
+		QMessageBox::StandardButton button = OBSMessageBox::question(
 			this, "DroidCam",
 			QTStr("ResetUIWarning.Title"));
 #else
