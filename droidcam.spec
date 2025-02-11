@@ -26,7 +26,6 @@ mv "${INSTALL}" "$RPM_BUILD_ROOT/opt/"
 
 install -D "${OLDPWD}/UI/xdg-data/droidcam.sh" "$RPM_BUILD_ROOT/usr/local/bin/droidcam"
 install -D -t"$RPM_BUILD_ROOT/usr/share/applications/" "${OLDPWD}/UI/xdg-data/com.dev47apps.droidcam.desktop"
-install -D -t"$RPM_BUILD_ROOT/etc/ld.so.conf.d/"       "${OLDPWD}/UI/xdg-data/com.dev47apps.droidcam.ld.conf"
 
 # cut a tar file
 #tar -cjf /tmp/droidcam-client_${version}.tar.bz2 -C "$RPM_BUILD_ROOT" $(ls $RPM_BUILD_ROOT)
@@ -43,7 +42,6 @@ ln -sf libbz2.so.1 "$RPM_BUILD_ROOT/usr/lib64/libbz2.so.1.0"
 
 %files
 /opt/droidcam-obs-client*
-/etc/ld.so.conf.d/com.dev47apps*
 /usr/share/applications/com.dev47apps*
 /usr/local/bin/droidcam
 /usr/lib64/libbz2.so.1.0
