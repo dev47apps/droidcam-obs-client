@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=DroidCam Client (New)
+Name=DroidCam Client (OBS)
 Comment=Use your phone as a webcam
 Icon=/opt/droidcam-obs-client/icon.png
 Path=/opt/droidcam-obs-client/bin/64bit
-Exec=/opt/droidcam-obs-client/bin/64bit/droidcam
+Exec=/usr/local/bin/droidcam
 Terminal=false
 Type=Application
 Categories=Video;AudioVideo;

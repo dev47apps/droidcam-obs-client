@@ -21,7 +21,7 @@ cmake -S . -B build \
 
 LD_LIBRARY_PATH=`pwd`/../deps/lib make -C build -j4
 LD_LIBRARY_PATH=`pwd`/../deps/lib make -C build install
-find "$INSTALL" -type f -iname *.ini ! -iname locale.ini ! -iname en-us.ini  -delete
+find "$INSTALL" -type f -iname *.ini ! -iname locale.ini ! -iname en-US.ini ! -iname es-ES.ini ! -iname pt-BR.ini  ! -iname hi-IN.ini ! -iname id-ID.ini -delete
 rm -rf "${INSTALL}"/{cmake*,lib*,include*}
 #
 #
