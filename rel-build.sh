@@ -26,13 +26,7 @@ rm -rf "${INSTALL}"/{cmake*,lib*,include*}
 #
 #
 cp UI/forms/images/obs.png "${INSTALL}/icon.png"
-unzip v4l2loopback-ctl.zip -d /
 #unzip droidcam-obs-plugin-prebuilt.zip -d /
+#cp /usr/local/bin/v4l2loopback-ctl $(INSTALL)/bin/64bit/
 find ${INSTALL} -type f -name droidcam-obs.so
 find ${INSTALL} -type f -name v4l2loopback-ctl
-
-spec=/tmp/droidcam.spec
-sed -e "s/{VERSION}/$version/" droidcam.spec > $spec
-rpmbuild -bb $spec
-rm $spec
-mv ~/rpmbuild/RPMS/*/*.rpm /tmp/
