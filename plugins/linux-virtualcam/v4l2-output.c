@@ -18,6 +18,7 @@ struct v4l2_output_data {
 	obs_output_t *output;
 	int device;
 	uint32_t frame_size;
+	bool use_caps_workaround;
 };
 
 static bool loopback_module_loaded()
@@ -43,8 +44,7 @@ static int loopback_module_load()
 
 static int loopback_module_add_card()
 {
-	return run_command(
-		"pkexec ./v4l2loopback-ctl add -n '" OBS_V4L2_CARD_LABEL
+	return run_command("pkexec ./v4l2loopback-ctl add -x 1 -n '" OBS_V4L2_CARD_LABEL
 		"' && sleep 0.5");
 }
 
@@ -72,6 +72,9 @@ static bool try_connect(void *data, const char *device, const char *name)
 	    strncmp((const char *)capability.card, name, strlen(name)) != 0) {
 		goto fail_close_device;
 	}
+
+	if (!(capability.device_caps & V4L2_CAP_VIDEO_OUTPUT))
+		goto fail_close_device;
 
 	format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
 
@@ -111,11 +114,9 @@ static bool try_connect(void *data, const char *device, const char *name)
 	memset(&parm, 0, sizeof(parm));
 	parm.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
 
-	if (ioctl(vcam->device, VIDIOC_STREAMON, &parm) < 0) {
-		blog(LOG_ERROR, "Failed to start streaming on '%s' (%s)",
-		     device, strerror(errno));
-		goto fail_close_device;
-	}
+	// Use of STREAMON/OFF is a workaround for v4l2loopback 0.12.x-0.13.x
+	// This fails in latest versions of v4l2loopback and can be skipped
+	vcam->use_caps_workaround = (ioctl(vcam->device, VIDIOC_STREAMON, &format.type) == 0);
 
 	blog(LOG_INFO, "v4l2-output: Using device '%s' at '%s'",
 	     capability.card, device);
@@ -217,6 +218,13 @@ void video_stop(void *data)
 		return;
 
 	struct v4l2_output_data *vcam = (struct v4l2_output_data *)data;
+
+	struct v4l2_format format;
+	format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+
+	if (vcam->use_caps_workaround && ioctl(vcam->device, VIDIOC_STREAMOFF, &format.type) < 0) {
+		blog(LOG_WARNING, "Failed to stop streaming on video device %d (%s)", vcam->device, strerror(errno));
+	}
 
 	close(vcam->device);
 	bfree(data);
