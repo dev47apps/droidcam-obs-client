@@ -262,7 +262,10 @@ void OBSBasicDroidCam::OBSInit() {
 	}
 	#endif // BROWSER_AVAILABLE
 
-	if (strlen(MIXPANEL_TOKEN)) {
+	long long now = (long long)time(nullptr);
+	long long secs = now - config_get_int(GetGlobalConfig(), "General", "LastMx");
+
+	if (strlen(MIXPANEL_TOKEN) && secs >= (3600 * 24)) {
 		using namespace json11;
 
 		const char* Version =
@@ -319,9 +322,11 @@ void OBSBasicDroidCam::OBSInit() {
 		data += "]";
 		// blog(LOG_INFO, "'%s'", data.c_str());
 
-		if (!GetRemoteFile(MIXPANEL_API_URL, out, error, &responseCode,
+		if (GetRemoteFile(MIXPANEL_API_URL, out, error, &responseCode,
 			"application/json", "POST", data.c_str(), headers, nullptr, 30))
 		{
+			config_set_int(GetGlobalConfig(), "General", "LastMx", now);
+		} else {
 			blog(LOG_WARNING, "Analytics: Failed: '%s'", error.c_str());
 		}
 	}
