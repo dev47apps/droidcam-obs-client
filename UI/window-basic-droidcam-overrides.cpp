@@ -261,7 +261,7 @@ void OBSBasicDroidCam::OBSInit() {
 		remoteDock->setObjectName("droidcamRemote");
 		remoteDock->setFloating(true);
 		remoteDock->setVisible(false);
-		remoteDock->setMinimumSize(200, 200);
+		remoteDock->setMinimumSize(220, 220);
 		remoteDock->setWindowTitle(QTStr("Remote.Title"));
 		remoteDock->setAllowedAreas(Qt::AllDockWidgetAreas);
 
@@ -500,8 +500,10 @@ void CleanMenuItems(QMenu *menu, bool recursive) {
 		QString name = action->objectName();
 
 		// File Menu
-		if (name == QString::fromLocal8Bit("action_Settings"))
+		if (name == QString::fromLocal8Bit("action_Settings")) {
+			prevSeperator->setVisible(true);
 			continue;
+		}
 
 		if (name == QString::fromLocal8Bit("actionAlwaysOnTop")) {
 			prevSeperator->setVisible(true);

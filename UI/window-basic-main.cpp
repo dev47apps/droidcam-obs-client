@@ -1920,6 +1920,24 @@ void OBSBasic::OBSInit()
 	ui->actionCopyFilters->setEnabled(false);
 	ui->actionCopySource->setEnabled(false);
 
+	#if 1
+	{
+		QString name = QT_UTF8(obs_source_get_display_name(DROIDCAM_OBS_ID));
+		QIcon icon = GetSourceIcon(DROIDCAM_OBS_ID);
+		QAction *item = new QAction(name, this);
+		item->setIcon(icon);
+		item->setData(QT_UTF8(DROIDCAM_OBS_ID));
+		connect(item, SIGNAL(triggered(bool)), this,
+			SLOT(AddSourceFromAction()));
+
+		QMenu *popup = new QMenu(QTStr("Add"), this);
+		popup->addAction(item);
+		ui->menu_File->insertMenu(ui->actionRemux, popup);
+	}
+	#else
+		ui->menu_File->insertMenu(ui->actionRemux, CreateAddSourcePopupMenu());
+	#endif
+
 	ui->viewMenu->insertAction(ui->toggleStatusBar, ui->toggleMixer);
 	ui->viewMenu->addSeparator();
 	ui->viewMenu->addAction(QTStr("Basic.MainMenu.Docks.ResetUI"), this,
@@ -8993,7 +9011,7 @@ void OBSBasic::on_resetUI_triggered()
 
 	cy = cy * 225 / 1000;
 
-	int mixerSize = cx - (cx22_5 * 2 + cx5 * 2);
+	int mixerSize = cx22_5;
 
 	QList<QDockWidget *> docks{ui->scenesDock, ui->sourcesDock,
 				   ui->mixerDock, ui->transitionsDock,

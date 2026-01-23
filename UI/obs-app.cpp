@@ -502,7 +502,6 @@ bool OBSApp::InitGlobalConfigDefaults()
 	// Delay the initial update check
 	if (config_get_int(globalConfig, "General", "LastUpdateCheck") == 0) {
 		long long now = (long long)time(nullptr);
-		config_set_int(GetGlobalConfig(), "General", "LastMx", now);
 		config_set_int(globalConfig, "General", "LastUpdateCheck",
 			now + (3600 * 24 * 4));
 	}
