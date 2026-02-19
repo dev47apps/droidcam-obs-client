@@ -924,7 +924,8 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HIDE_ITEM(ui->openStatsOnStartup);
 	HIDE_ITEM(ui->systemTrayEnabled);
 	HIDE_ITEM(ui->groupBoxMultiview);
-	ui->hideOBSFromCapture->setToolTip(QString());
+	if (ui->hideOBSFromCapture)
+		ui->hideOBSFromCapture->setToolTip(QString());
 	ui->groupBox_10->setVisible(false); // "Source Alignment"
 	ui->groupBox_11->setVisible(false); // "Studio Mode"
 	ui->groupBox_14->setVisible(false); // "Projectors"
