@@ -358,7 +358,8 @@ void OBSBasicDroidCam::OBSInit() {
 				#elif __APPLE__
 					#error "macOS"
 				#elif __linux__
-					#error "Linux"
+					{"$os", "Linux"},
+					{"$cpu_arch", "x64"},
 				#endif
 			}},
 		};
